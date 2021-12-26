@@ -2,10 +2,35 @@ const http = require('http')
 const url = require('url')
 const path = require('path')
 const fs = require('fs')
-const indexPath = path.join(__dirname, 'index.js')
-const readStream = fs.createReadStream(indexPath)
+const cluster = require('cluster')
+const os = require('os')
 
-const server = http.createServer((request, response) => {
+if(cluster.isMaster) {
+    console.log(`Master ${process .pid} is running`)
+    for(let i = 0; i < os.cpus().length; i++){
+        console.log(`Forking process number ${i}`)
+        cluster.fork()
+    }
+}else {
+    console.log(`Worker ${process.pid} is running...`)
+    const indexPath = path.join(__dirname, 'index.js')
+    const readStream = fs.createReadStream(indexPath)
+    const server = http.createServer(((request, response) => {
+        setTimeout(() => {
+            console.log(`Worker ${process.pid} handing request`)
+            response.writeHead(200,'OK', {
+                'Content-Type': 'text/html',
+            })
+            readStream.pipe(response)
+        },5000)
+    }))
+server.listen(5555)
+
+}
+
+
+
+// const server = http.createServer((request, response) => {
 
 // response.end('Hello from Node.js')
 // console.log('url:', request.url)
@@ -52,12 +77,12 @@ const server = http.createServer((request, response) => {
 // console.log(query)
 // response.end()
     
-if(request.method === 'GET'){
-    response.writeHead(200,'OK!', {
-        'Content-Type': 'text/js',
-    })
-}
-readStream.pipe(response)
-})
+// if(request.method === 'GET'){
+//     response.writeHead(200,'OK!', {
+//         'Content-Type': 'text/js',
+//     })
+// }
+// readStream.pipe(response)
+// })
 
-server.listen(5555)
+// server.listen(5555)
